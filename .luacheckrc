@@ -1,3 +1,5 @@
+max_line_length = false
+
 read_globals = {
     "DIR_DELIM", "INIT",
 
