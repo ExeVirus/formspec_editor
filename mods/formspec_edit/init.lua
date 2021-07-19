@@ -15,7 +15,6 @@ local update_time = tonumber(minetest.settings:get("formspec_editor.update_time"
 local error_formspec = [[
 formspec_version[4]
 size[8,2]
-position[0.5,0.5]
 label[0.375,0.5;Error:formspec.spec is either ]
 label[0.375,1;non-existent,or empty]
 ]]
