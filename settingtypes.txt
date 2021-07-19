@@ -1,5 +1,8 @@
 #    Formspec update time (in seconds)
 formspec_editor.update_time (Update time) float 0.2
 
-#    Path to the default font.
+#    Path of the formspec file
 formspec_editor.file_path (File path) filepath
+
+#    Style type
+formspec_editor.style (Formspec style) enum builtin builtin,minetest_game,mineclone2
