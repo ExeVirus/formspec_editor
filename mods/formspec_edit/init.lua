@@ -61,11 +61,9 @@ end
 --update_formspec()
 -----------------------------------
 update_formspec = function(player_name)
-	minetest.after(0.1,
-		function(player_name)
-			minetest.show_formspec(player_name, "fs", load_formspec())
-		end,
-		player_name)
+	minetest.after(0.1, function(name)
+		minetest.show_formspec(name, "fs", load_formspec())
+	end, player_name)
 end
 
 -----------------------------------
