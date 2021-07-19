@@ -1,0 +1,2 @@
+#    Formspec update time (in seconds)
+formspec_editor.update_time (Update time) float 0.2

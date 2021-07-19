@@ -10,7 +10,7 @@ minetest.register_alias("mapgen_water_source", "air")
 --Variables
 local modpath = minetest.get_modpath("formspec_edit")
 local insecure_env = minetest.request_insecure_environment()
-local update_time = 0.2 --seconds
+local update_time = tonumber(minetest.settings:get("formspec_editor.update_time")) or 0.2
 
 local error_formspec = [[
 formspec_version[4]
