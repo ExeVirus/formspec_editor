@@ -12,6 +12,12 @@ local modpath = minetest.get_modpath("formspec_edit")
 local insecure_env = minetest.request_insecure_environment()
 local update_time = tonumber(minetest.settings:get("formspec_editor.update_time")) or 0.2
 
+--Load provided file if present
+local filepath = minetest.settings:get("formspec_editor.file_path")
+if not filepath or filepath == "" then
+	filepath = modpath .. "/formspec.spec"
+end
+
 local error_formspec = [[
 formspec_version[4]
 size[8,2]
@@ -70,7 +76,7 @@ end
 -----------------------------------
 load_formspec = function()
 	local io = insecure_env.io
-	local file = io.open(modpath .. "/formspec.spec", "rb")
+	local file = io.open(filepath, "rb")
 	if file == nil then
 		return error_formspec
 	else
