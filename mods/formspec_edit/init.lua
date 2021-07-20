@@ -12,7 +12,8 @@ local modpath = minetest.get_modpath("formspec_edit")
 
 local insecure_env = minetest.request_insecure_environment()
 if not insecure_env then
-	error("[formspec_editor] Cannot access insecure environment!")
+	error("[formspec_editor] Cannot access insecure environment!\n"..
+	      "Please add 'formspec_edit' to your list of trusted mods in your settings")
 end
 
 local io = insecure_env.io
