@@ -14,8 +14,7 @@ The file *formspec.spec* in your:
 ```minetest_folder/games/formspec_editor/mods/formspec_edit```
 
 contains a formspec you can edit and see updates of in real time. (You can also specify a file location with the `formspec_editor.file_path` setting.)
-Simply add the game to MT, load up a level of *Formspec Editor*, and
-you will be greeted with the formspec. 
+Simply add the game to MT, load up a level of *Formspec Editor*, and you will be greeted with the formspec. 
 
 - To make edits, open the file in your editor of choice and make changes as you see fit. When you hit save, the formspec will auto-update. Best when used side by side. 
 - To exit just hit <escape> or use a button_exit[] button. Both send the
