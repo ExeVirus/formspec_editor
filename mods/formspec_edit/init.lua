@@ -3,6 +3,8 @@
 ---------------------------------
 -----------By ExeVirus-----------
 
+formspec_edit = {}
+
 --Fix builtin
 minetest.register_alias("mapgen_stone", "air")
 minetest.register_alias("mapgen_water_source", "air")
@@ -19,47 +21,110 @@ end
 local io = insecure_env.io
 local update_time = tonumber(minetest.settings:get("formspec_editor.update_time")) or 0.2
 
---Load provided file if present
+--Get provided modpath if present
 local filepath = minetest.settings:get("formspec_editor.file_path")
 if not filepath or filepath == "" then
-	filepath = modpath .. "/formspec.spec"
-end
-
---Get styling presets
-local styling = minetest.settings:get("formspec_editor.style")
-if not styling or styling == "" then
-	styling = "builtin"
+	filepath = modpath .. "/formspec.lua"
 end
 
 local error_formspec = [[
 formspec_version[4]
 size[8,2]
-label[0.375,0.5;Error:formspec.spec is either ]
+label[0.375,0.5;Error: formspec.lua is either]
 label[0.375,1;non-existent,or empty]
 ]]
 
 --Crash if not singleplayer
---TODO: hide the 'Host server' checkbox in main menu then possible
 if not minetest.is_singleplayer() then
 	error("[formspec_editor] This game doesn't work in multiplayer!")
 end
 
+-----------------------------------
+--error_handler()
+-----------------------------------
+local function error_handler(msg)
+	return string.format([[
+		formspec_version[4]
+		size[8,2]
+		label[0.375,0.5;Error: %s]
+	]], msg)
+end
+
+
+--Define the basic lua env (only contains safe functions)
+formspec_edit.lua_env = {
+	print = print, --can be useful for debugging
+	dump = dump,
+	dump2 = dump2,
+	table = table,
+	string = string,
+	math = math,
+	vector = vector,
+	F = minetest.formspec_escape,
+	C = minetest.colorize,
+	CE = minetest.get_color_escape_sequence,
+	S = function(str, ...) --oversimplificated version of minetest.translate
+		local arg = {n=select('#', ...), ...}
+		local arg_index = 1
+		local translated = str:gsub("@(.)", function(matched)
+			local c = string.byte(matched)
+			if string.byte("1") <= c and c <= string.byte("9") then
+				local a = c - string.byte("0")
+				if a ~= arg_index then
+					return str
+				end
+				if a > arg.n then
+					return str
+				end
+				arg_index = arg_index + 1
+				return arg[a]
+			elseif matched == "n" then
+				return "\n"
+			else
+				return matched
+			end
+		end)
+		return translated
+	end,
+}
+
+dofile(modpath.."/game_specific.lua")
+
 --function definitions
 
------------------------------------
---load_formspec()
------------------------------------
-local function load_formspec()
+---------------------------------
+--check_updates()
+---------------------------------
+
+local cached_file = ""
+
+local function check_updates()
+	--attemp to open the file
 	local file = io.open(filepath, "rb")
 	if file == nil then
 		return error_formspec
 	else
+		--read file content
 		local content = file:read("*all")
 		file:close()
+
+		--validate content
 		if content == nil then
 			return error_formspec
 		else
-			return content
+			if content == cached_file then
+				return
+			else
+				cached_file = content
+				--load code
+				local func = load(content, "formspec_editor", "bt", formspec_edit.lua_env)
+				local state, msg = pcall(func)
+				if not state then
+					return error_handler(msg)
+				end
+				print(dump(msg))
+				return msg or "size[8,2]"
+			end
 		end
 	end
 end
@@ -68,54 +133,35 @@ end
 --update_formspec()
 -----------------------------------
 local function update_formspec(player_name)
-	minetest.after(0.1, function(name)
-		minetest.show_formspec(name, "fs", load_formspec())
-	end, player_name)
-end
-
------------------------------------
---apply_styling()
------------------------------------
-local function apply_styling(player_ref)
-	local prepend = ""
-	if styling == "minetest_game" then
-		------------------------------------------------
-		---------------Minetest Game code---------------
-		------------------------------------------------
-		prepend = [[
-			bgcolor[#080808BB;true]
-			listcolors[#00000069;#5A5A5A;#141318;#30434C;#FFF]
-		]]
-		local name = player_ref:get_player_name()
-		local info = minetest.get_player_information(name)
-		if info.formspec_version > 1 then
-			prepend = prepend .. "background9[5,5;1,1;mtg_gui_formbg.png;true;10]"
-		else
-			prepend = prepend .. "background[5,5;1,1;mtg_gui_formbg.png;true]"
-		end
-	elseif styling == "mineclone2" then
-		------------------------------------------------
-		---------------MineClone2 code------------------
-		------------------------------------------------
-		--Sadly, this code doesn't support inventory slot styling (texture based)
-		prepend = "listcolors[#9990;#FFF7;#FFF0;#000;#FFF]"..
-			"style_type[image_button;border=false;bgimg=mcl_inventory_button9.png;bgimg_pressed=mcl_inventory_button9_pressed.png;bgimg_middle=2,2]"..
-			"style_type[button;border=false;bgimg=mcl_inventory_button9.png;bgimg_pressed=mcl_inventory_button9_pressed.png;bgimg_middle=2,2]"..
-			"style_type[field;textcolor=#323232]"..
-			"style_type[label;textcolor=#323232]"..
-			"style_type[textarea;textcolor=#323232]"..
-			"style_type[checkbox;textcolor=#323232]"..
-			"bgcolor[#00000000]"..
-			"background9[1,1;1,1;mcl_base_textures_background9.png;true;7]"
+	local new = check_updates()
+	if new then
+		minetest.after(0.1, function(name)
+			minetest.show_formspec(name, "fs", new)
+		end, player_name)
 	end
-	player_ref:set_formspec_prepend(prepend)
 end
 
+
+--Registrations
+
 -----------------------------------
---turn_off_hud()
+--on_joinplayer()
 -----------------------------------
-local function turn_off_hud(player_ref)
-	player_ref:hud_set_flags({
+minetest.register_on_joinplayer(function(player,_)
+	--Apply formspec prepend
+	player:set_formspec_prepend(formspec_edit.prepend)
+
+	--Create inventories
+	local inv = player:get_inventory()
+	for name,def in pairs(formspec_edit.inventories) do
+		inv:set_size(name, def.size)
+		if def.width then
+			inv:set_width(name, def.width)
+		end
+	end
+
+	--Hide builtin HUD elements
+	player:hud_set_flags({
 		hotbar = false,
 		healthbar = false,
 		crosshair = false,
@@ -124,41 +170,27 @@ local function turn_off_hud(player_ref)
 		minimap = false,
 		minimap_radar = false,
 	})
-end
 
------------------------------------
---set_sky()
------------------------------------
-local function set_sky(player_ref)
-	player_ref:set_sky({
+	--Update sky
+	player:set_sky({
 		base_color = "#AAF",
 		type = "plain",
 		clouds = false,
 	})
-	player_ref:set_stars({visible = false})
-    player_ref:set_sun({visible = false})
-    player_ref:set_moon({visible = false})
-	player_ref:override_day_night_ratio(0)
-end
-
---Registrations
-
------------------------------------
---on_joinplayer()
------------------------------------
-minetest.register_on_joinplayer(function(player_ref,_)
-	apply_styling(player_ref)
-	turn_off_hud(player_ref)
-	set_sky(player_ref)
+	player:set_stars({visible = false})
+    player:set_sun({visible = false})
+    player:set_moon({visible = false})
+	player:override_day_night_ratio(0)
 end)
+
 -----------------------------------
 --on_player_receive_fields()
 -----------------------------------
-minetest.register_on_player_receive_fields(function(player_ref, _, fields)
+minetest.register_on_player_receive_fields(function(player, _, fields)
 	if fields.quit then
 		minetest.request_shutdown()
 	end
-	update_formspec(player_ref:get_player_name())
+	update_formspec(player:get_player_name())
 end)
 
 local time = 0
