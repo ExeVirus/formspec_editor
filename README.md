@@ -9,7 +9,7 @@ This mod needs access to an insecure environment in order to work.
 
 Add `formspec_edit` to `secure.trusted_mods` in your `minetest.conf` file.
 
-The file *formspec.spec* in your:
+The file *formspec.lua* in your:
 
 ```minetest_folder/games/formspec_editor/mods/formspec_edit```
 

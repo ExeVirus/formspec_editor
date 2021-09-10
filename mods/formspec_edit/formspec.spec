@@ -1,5 +1,0 @@
-formspec_version[4]
-size[8,4]
-position[0.5,0.5]
-label[0.375,0.5;Edit me in realtime!]
-button[2,1.0;4,0.5;test;This is a button]
